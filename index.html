@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Capture the Box</title>
+    <meta name="description" content="A local-first, offline-capable implementation of the classic Dots and Boxes game. Play against AI or friends.">
+    <meta property="og:title" content="Capture the Box - Single File Strategy Game">
+    <meta property="og:description" content="Offline, ad-free, tracking-free Dots and Boxes. Play anywhere.">
+    <meta property="og:type" content="website">
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Capture the Box","short_name":"CaptureBox","start_url":".","display":"standalone","background_color":"#fff8f0","theme_color":"#5f27cd","orientation":"portrait","icons":[{"src":"","sizes":"192x192","type":"image/png"}]}'>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CaptureBox">
+
+    <link id="app-favicon" rel="icon" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+
+    <style>
+        :root {
+            /* --- THEME: LIGHT --- */
+            --bg-color: #fff8f0;
+            --card-bg: #ffffff;
+            --primary-color: #5f27cd;
+            --primary-border: #341f97;
+            --accent-color: #ee5253;
+            --accent-border: #b33939;
+            --success-color: #10ac84;
+            --success-border: #0a795d;
+            --text-color: #222f3e;
+            --border-color: #222f3e;
+            --shadow-color: #222f3e;
+            --canvas-bg: #ffffff;
+            --input-bg: #f1f2f6;
+            --btn-text-color: #ffffff; 
+            
+            --border-width: 3px;
+            --radius: 16px;
+            
+            /* SYSTEM FONT STACK */
+            --font-stack: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        [data-theme="dark"] {
+            /* --- THEME: DARK --- */
+            --bg-color: #222f3e;
+            --card-bg: #2f3640;
+            --primary-color: #a29bfe;   /* Pastel Lavender */
+            --primary-border: #6c5ce7;
+            --accent-color: #ff7675;
+            --accent-border: #d63031;
+            --success-color: #55efc4;
+            --success-border: #00b894;
+            --text-color: #feca57;
+            --border-color: #000000;
+            --shadow-color: #000000;
+            --canvas-bg: #353b48;
+            --input-bg: #222f3e;
+            --btn-text-color: #2d3436; 
+        }
+
+        [data-theme="brutal"] {
+            /* --- THEME: BRUTAL BOX --- */
+            --bg-color: #fff900;        /* Bright Yellow */
+            --card-bg: #ffffff;
+            --primary-color: #000000;   /* Black Buttons */
+            --primary-border: #000000;
+            --accent-color: #ff0000;    /* Pure Red */
+            --accent-border: #000000;
+            --success-color: #00ff00;   /* Pure Green */
+            --success-border: #000000;
+            --text-color: #000000;      /* Black Text */
+            --border-color: #000000;    /* Black Borders */
+            --shadow-color: #000000;    /* Black Shadows */
+            --canvas-bg: #ffffff;
+            --input-bg: #ffffff;
+            --btn-text-color: #fff900;  /* Yellow text on black buttons */
+            
+            --radius: 0px;              /* No rounded corners */
+            --border-width: 4px;        /* Thicker borders */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--text-color) 1px, transparent 1px);
+            background-size: 30px 30px; 
+            background-blend-mode: overlay;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-color);
+            opacity: 1;
+        }
+        
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        .container {
+            background: var(--card-bg);
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 40px;
+            box-shadow: 8px 8px 0px var(--shadow-color); 
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 3em;
+            font-weight: 900; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0px var(--bg-color);
+        }
+        
+        [data-theme="brutal"] h1 {
+            text-shadow: 4px 4px 0px var(--shadow-color);
+            -webkit-text-stroke: 1px black;
+            color: var(--bg-color);
+            background: black;
+            display: inline-block;
+            padding: 5px 15px;
+            transform: rotate(-2deg);
+            width: 100%;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--text-color);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+
+        .setup {
+            text-align: center;
+            margin-bottom: 20px;
+            background: var(--input-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 2px solid var(--border-color);
+        }
+
+        .setup-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setup label {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .setup select {
+            appearance: none;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 1.1em;
+            font-family: var(--font-stack);
+            font-weight: 600;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            box-shadow: 3px 3px 0px var(--shadow-color);
+            transition: transform 0.1s;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+        }
+        
+        .setup select:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px var(--shadow-color);
+        }
+
+        button {
+            background: var(--primary-color);
+            color: var(--btn-text-color);
+            border: 2px solid var(--border-color);
+            padding: 14px 24px;
+            margin: 10px 5px;
+            border-radius: var(--radius);
+            font-size: 1.1em;
+            font-weight: 700;
+            font-family: var(--font-stack);
+            cursor: pointer;
+            box-shadow: 0px 5px 0px var(--primary-border), 0px 5px 5px rgba(0,0,0,0.2); 
+            transition: transform 0.1s ease, filter 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            top: 0;
+        }
+        
+        [data-theme="brutal"] button {
+            box-shadow: 4px 4px 0px var(--shadow-color);
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0px 7px 0px var(--primary-border), 0px 7px 5px rgba(0,0,0,0.2);
+        }
+        
+        [data-theme="brutal"] button:hover {
+            box-shadow: 6px 6px 0px var(--shadow-color);
+        }
+
+        button:active {
+            transform: translateY(5px) !important;
+            box-shadow: 0px 0px 0px var(--primary-border) !important;
+        }
+        
+        [data-theme="brutal"] button:active {
+            transform: translate(2px, 2px) !important;
+            box-shadow: 2px 2px 0px var(--shadow-color) !important;
+        }
+
+        .btn-danger {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0px 5px 0px var(--accent-border), 0px 5px 5px rgba(0,0,0,0.2); 
+        }
+        
+        [data-theme="brutal"] .btn-danger {
+            color: var(--btn-text-color);
+            box-shadow: 4px 4px 0px var(--shadow-color);
+        }
+
+        .btn-danger:hover {
+             box-shadow: 0px 7px 0px var(--accent-border), 0px 7px 5px rgba(0,0,0,0.2);
+        }
+        .btn-danger:active {
+            box-shadow: 0px 0px 0px var(--accent-border) !important;
+        }
+
+        .add-player-btn {
+            background: var(--success-color) !important;
+            /* FORCE DARK TEXT ON ADD PLAYER BUTTON FOR ALL THEMES */
+            color: #000000 !important; 
+            box-shadow: 0px 5px 0px var(--success-border), 0px 5px 5px rgba(0,0,0,0.2); 
+        }
+        
+        [data-theme="brutal"] .add-player-btn {
+            box-shadow: 4px 4px 0px var(--shadow-color);
+        }
+
+        .add-player-btn:hover {
+            box-shadow: 0px 7px 0px var(--success-border), 0px 7px 5px rgba(0,0,0,0.2);
+        }
+        .add-player-btn:active {
+            box-shadow: 0px 0px 0px var(--success-border) !important;
+        }
+
+        button svg {
+            width: 22px;
+            height: 22px;
+            stroke-width: 3;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .player-info {
+            padding: 15px 25px;
+            border-radius: var(--radius);
+            transition: transform 0.3s;
+            min-width: 140px;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            background: var(--card-bg);
+            position: relative;
+        }
+
+        .player-info.active {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 4px 4px 0px var(--border-color);
+            background: var(--input-bg);
+            z-index: 2;
+        }
+
+        .player-name {
+            font-weight: 800;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .player-score {
+            font-size: 2.2em;
+            font-weight: 800;
+            line-height: 1;
+            display: block;
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+            background: var(--canvas-bg);
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 10px;
+            box-shadow: inset 4px 4px 0px rgba(0,0,0,0.05); 
+        }
+        
+        [data-theme="brutal"] .canvas-container {
+            box-shadow: none;
+        }
+
+        canvas {
+            border-radius: 8px;
+            cursor: crosshair;
+            touch-action: none;
+            max-width: 100%;
+        }
+        
+        [data-theme="brutal"] canvas {
+            border-radius: 0;
+        }
+        
+        #ai-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: var(--radius);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 800;
+            font-size: 1.5em;
+            color: var(--primary-color);
+            backdrop-filter: blur(4px);
+        }
+        
+        #ai-overlay.hidden {
+            display: none !important;
+        }
+
+        [data-theme="dark"] #ai-overlay {
+            background: rgba(34, 47, 62, 0.85);
+            color: var(--text-color);
+        }
+        
+        [data-theme="brutal"] #ai-overlay {
+            background: rgba(255, 249, 0, 0.9);
+            color: black;
+            border: 4px solid black;
+            backdrop-filter: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .player-list {
+            margin: 20px auto;
+            text-align: left;
+            max-width: 550px;
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 15px;
+        }
+        
+        [data-theme="brutal"] .player-list {
+            border-style: solid;
+        }
+        
+        .player-list h3 {
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .player-entry {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            margin: 8px 0;
+            gap: 10px;
+        }
+
+        .player-entry input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            font-family: var(--font-stack);
+            font-size: 1em;
+            font-weight: 600;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+        
+        .player-entry input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: var(--card-bg);
+        }
+
+        .player-entry input[type="color"] {
+            width: 44px;
+            height: 44px;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        .player-entry input[type="color"]:hover {
+            transform: scale(1.1);
+        }
+        
+        .player-entry input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .player-entry input[type="color"]::-webkit-color-swatch {
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+        }
+        
+        [data-theme="brutal"] .player-entry input[type="color"]::-webkit-color-swatch {
+            border-radius: 0;
+        }
+
+        .player-entry button {
+            padding: 8px 14px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-color);
+            color: var(--bg-color);
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            border: 2px solid var(--bg-color);
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        [data-theme="brutal"] #toast {
+            border-radius: 0;
+            border: 4px solid black;
+            background: white;
+            color: black;
+            box-shadow: 8px 8px 0px black;
+        }
+        
+        #toast.show { bottom: 40px; }
+
+        #modal-overlay, #generic-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        #modal-overlay.show, #generic-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #game-over, #generic-modal {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: var(--radius);
+            border: var(--border-width) solid var(--border-color);
+            box-shadow: 12px 12px 0px var(--shadow-color);
+            text-align: center;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        #generic-modal-content {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        #modal-overlay.show #game-over, #generic-modal-overlay.show #generic-modal { 
+            transform: scale(1) translateY(0); 
+        }
+
+        #game-over h2, .modal-header h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 2.2em;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        
+        [data-theme="brutal"] #game-over h2, [data-theme="brutal"] .modal-header h2 {
+             color: black;
+             text-decoration: underline;
+             text-shadow: none;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 15px;
+        }
+        
+        [data-theme="brutal"] .modal-header {
+            border-bottom-style: solid;
+        }
+        
+        .modal-header .close-btn {
+            font-size: 2.5em;
+            line-height: 0.8;
+            color: var(--text-color);
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+        }
+        .modal-header .close-btn:hover {
+            transform: rotate(90deg);
+            color: var(--accent-color);
+        }
+
+        .save-entry, .history-entry {
+            background: var(--input-bg);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .history-entry { display: grid; grid-template-columns: 1fr 1fr; }
+
+        .save-entry-buttons { display: flex; gap: 8px; }
+        .save-entry-buttons button { margin: 0; padding: 8px 12px; }
+
+        /* --- FOOTER STYLES --- */
+        .app-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--border-color);
+            font-size: 0.9em;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+        .app-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
+        [data-theme="brutal"] .app-footer {
+            border-top-style: solid;
+            opacity: 1;
+        }
+        [data-theme="brutal"] .app-footer a {
+            color: black;
+            background: white; 
+            padding: 2px 5px;
+            border: 1px solid black;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 2em; }
+            button { padding: 12px 16px; font-size: 1em; }
+            .player-info { min-width: 100px; padding: 10px; }
+            .player-score { font-size: 1.5em; }
+            .save-entry { flex-direction: column; align-items: stretch; text-align: center; }
+            .save-entry-buttons { justify-content: center; margin-top: 10px; }
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="a11y-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="container">
+        <h1>Capture the Box</h1>
+
+        <div id="setup" class="setup">
+            <div class="setup-grid">
+                <label for="gridSize">Board Size:</label>
+                <select id="gridSize" aria-label="Select grid size">
+                    <option value="2">1×1 (Tiny)</option>
+                    <option value="4">3×3 (Small)</option>
+                    <option value="6" selected>5×5 (Classic)</option>
+                    <option value="8">7×7 (Large)</option>
+                    <option value="10">9×9 (Epic)</option>
+                </select>
+            </div>
+            
+            <div class="setup-grid">
+                <label for="numPlayers">Total Players:</label>
+                <select id="numPlayers" onchange="App.UI.updatePlayerSetup()" aria-label="Select number of players">
+                    <option value="1">1 Player (vs AI)</option>
+                    <option value="2" selected>2 Players</option>
+                    <option value="3">3 Players</option>
+                    <option value="4">4 Players</option>
+                    <option value="5">5 Players</option>
+                    <option value="6">6 Players</option>
+                </select>
+            </div>
+
+            <div class="setup-grid hidden" id="aiDifficultyContainer">
+                <label for="aiDifficulty">AI Level:</label>
+                <select id="aiDifficulty" aria-label="Select AI difficulty">
+                    <option value="simple">Easy</option>
+                    <option value="greedy">Medium</option>
+                    <option value="hard" selected>Hard</option>
+                </select>
+            </div>
+
+            <div class="setup-grid">
+                <label for="themeSelector">Theme:</label>
+                <select id="themeSelector" onchange="App.UI.setTheme(this.value)" aria-label="Select color theme">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="brutal">Brutal Box</option>
+                </select>
+            </div>
+            <div class="player-list" id="playerList">
+                <h3>Who is playing?</h3>
+            </div>
+
+            <button class="add-player-btn" onclick="App.UI.addPlayer()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                Add Player
+            </button>
+            <br><br>
+            <button onclick="App.Game.startGame()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>
+                Start Game
+            </button>
+            <button onclick="App.UI.showLoadGameModal()" aria-label="Load Saved Game">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.663V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.16a2.25 2.25 0 00-.1-.663l-2.41-7.855A2.25 2.25 0 0017.088 3.75H15M12 3.75v9m-3-3l3 3 3-3" /></svg>
+                Load
+            </button>
+            <button onclick="App.UI.showHistoryModal()" aria-label="View Game History">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" /></svg>
+                History
+            </button>
+            <button onclick="App.UI.showRules()" aria-label="How to play">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Rules
+            </button>
+            
+            <div class="app-footer">
+                <p style="margin-bottom: 8px;"><strong>✅ 100% Offline &amp; Tracker-Free</strong></p>
+                <p>
+                    <a href="YOUR_GITHUB_URL" target="_blank" rel="noopener">GitHub</a>
+                    &nbsp;•&nbsp; 
+                    <a href="#" onclick="App.UI.showLicense(); return false;">MIT License</a>
+                </p>
+            </div>
+        </div>
+
+        <div id="gameArea" class="hidden" aria-hidden="true">
+            <div class="game-info" id="playersInfo"></div>
+            <div class="canvas-container">
+                <canvas id="gameCanvas" role="img" aria-label="Game Board. Use mouse or touch to draw lines between dots."></canvas>
+                <div id="ai-overlay" class="hidden" aria-live="polite">AI IS THINKING...</div>
+            </div>
+            <div class="controls">
+                <button onclick="App.Storage.saveGame()" aria-label="Save Current Game">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                    Save
+                </button>
+                <button onclick="App.UI.resetGameConfirm()" aria-label="Start a New Game">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.348a8.25 8.25 0 0113.803-3.7l3.181 3.183m-4.992 0H2.985" /></svg>
+                    New Game
+                </button>
+                <button onclick="App.Game.undoMove()" aria-label="Undo Last Move">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+                    Undo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+        <div id="game-over">
+            <h2 id="game-over-title">GAME OVER!</h2>
+            <p id="winner"></p>
+            <button onclick="App.Game.resetGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div id="generic-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="generic-modal-title">
+        <div id="generic-modal">
+            <div class="modal-header">
+                <h2 id="generic-modal-title">Modal Title</h2>
+                <button class="close-btn" onclick="App.UI.closeGenericModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div id="generic-modal-content"></div>
+            <div id="generic-modal-footer" class="modal-footer"></div>
+        </div>
+    </div>
+
+    <div id="toast" role="alert" aria-live="assertive"></div>
+
+    <script>
+        const App = {
+            // --- CACHED DOM ELEMENTS ---
+            Elements: {
+                canvas: null,
+                ctx: null,
+                toast: null,
+                gameOverModalOverlay: null,
+                genericModalOverlay: null,
+                genericModalTitle: null,
+                genericModalContent: null,
+                genericModalFooter: null,
+                setupDiv: null,
+                gameAreaDiv: null,
+                playersInfoDiv: null,
+                playerListDiv: null,
+                gridSizeSelect: null,
+                numPlayersSelect: null,
+                aiDifficultyContainer: null,
+                aiDifficultySelect: null,
+                themeSelector: null,
+                winnerP: null,
+                aiOverlay: null,
+                announcer: null, // For screen readers
+            },
+
+            // --- STORAGE LOGIC ---
+            Storage: {
+                SAVE_KEY: 'captureTheBoxSaves',
+                HISTORY_KEY: 'captureTheBoxHistory',
+                PLAYER_DEFAULTS_KEY: 'captureTheBoxPlayerDefaults',
+                THEME_KEY: 'captureTheBoxTheme',
+
+                getSaves: () => JSON.parse(localStorage.getItem(App.Storage.SAVE_KEY) || '[]'),
+                getHistory: () => JSON.parse(localStorage.getItem(App.Storage.HISTORY_KEY) || '[]'),
+
+                savePlayerDefaults: () => {
+                    const playerDefaults = App.Game.players.map(p => ({ name: p.name, color: p.color, score: 0, isAI: p.isAI || false }));
+                    localStorage.setItem(App.Storage.PLAYER_DEFAULTS_KEY, JSON.stringify(playerDefaults));
+                },
+
+                saveGame: () => {
+                    if (!App.Game.gameActive) {
+                        App.UI.showToast('Start a game before saving!');
+                        return;
+                    }
+                    const playerNames = App.Game.players.map(p => p.name).join(' vs ');
+                    const defaultName = `${new Date().toLocaleString()} - ${playerNames}`;
+                    
+                    const name = prompt('Enter a name for your save game:', defaultName);
+                    if (name === null) return; 
+                    if (name.trim() === '') {
+                        App.UI.showToast('Save name cannot be empty.');
+                        return;
+                    }
+
+                    const gameState = { 
+                        gridSize: App.Game.gridSize, 
+                        players: App.Game.players, 
+                        currentPlayerIndex: App.Game.currentPlayerIndex, 
+                        lines: App.Game.lines, 
+                        boxes: App.Game.boxes, 
+                        moveHistory: App.Game.moveHistory 
+                    };
+                    const newSave = { name: name.trim(), timestamp: Date.now(), gameState: gameState };
+                    
+                    let saves = App.Storage.getSaves();
+                    const existingIndex = saves.findIndex(s => s.name === newSave.name);
+
+                    if (existingIndex > -1) {
+                        if (confirm(`A save named "${newSave.name}" already exists. Overwrite it?`)) {
+                            saves[existingIndex] = newSave;
+                        } else {
+                            return; 
+                        }
+                    } else {
+                        saves.push(newSave);
+                    }
+
+                    localStorage.setItem(App.Storage.SAVE_KEY, JSON.stringify(saves));
+                    App.UI.showToast(`Game saved as "${newSave.name}"`);
+                    App.Game.isGameSaved = true;
+                },
+
+                loadSelectedGame: (name) => {
+                    const saves = App.Storage.getSaves();
+                    const saveToLoad = saves.find(s => s.name === name);
+                    if (!saveToLoad) {
+                        App.UI.showToast('Error: Save file not found.');
+                        return;
+                    }
+                    
+                    App.Game.applyGameState(saveToLoad.gameState);
+                    App.UI.showToast(`Game "${name}" loaded!`);
+                    App.UI.closeGenericModal();
+                },
+
+                deleteSave: (name) => {
+                    if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+                        return;
+                    }
+                    let saves = App.Storage.getSaves();
+                    saves = saves.filter(s => s.name !== name);
+                    localStorage.setItem(App.Storage.SAVE_KEY, JSON.stringify(saves));
+                    App.UI.showToast('Save deleted.');
+                    App.UI.showLoadGameModal(); 
+                },
+
+                saveToHistory: (winnerText) => {
+                    const playerNames = App.Game.players.map(p => p.name).join(' vs ');
+                    const finalScore = App.Game.players.map(p => `${p.name}: ${p.score}`).join(', ');
+                    
+                    const historyEntry = {
+                        date: Date.now(),
+                        players: playerNames,
+                        score: finalScore,
+                        winner: winnerText
+                    };
+                    
+                    let history = App.Storage.getHistory();
+                    history.push(historyEntry);
+                    localStorage.setItem(App.Storage.HISTORY_KEY, JSON.stringify(history));
+                },
+
+                clearHistory: () => {
+                    if (!confirm('Are you sure you want to delete all game history? This cannot be undone.')) {
+                        return;
+                    }
+                    localStorage.removeItem(App.Storage.HISTORY_KEY);
+                    App.UI.showToast('Game history cleared.');
+                    App.UI.showHistoryModal();
+                },
+            },
+
+            // --- UI LOGIC ---
+            UI: {
+                toastTimeout: null,
+
+                announce: (message) => {
+                    if (App.Elements.announcer) {
+                        App.Elements.announcer.textContent = message;
+                    }
+                },
+
+                updateFavicon: () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+
+                    // Get current theme colors from CSS variables
+                    const style = getComputedStyle(document.documentElement);
+                    const bgColor = style.getPropertyValue('--bg-color').trim();
+                    const primaryColor = style.getPropertyValue('--primary-color').trim();
+
+                    // Draw Background (Rounded Square)
+                    ctx.fillStyle = primaryColor;
+                    
+                    // If 'Brutal' theme, make it square, otherwise rounded
+                    const isBrutal = document.documentElement.getAttribute('data-theme') === 'brutal';
+                    
+                    if (isBrutal) {
+                        ctx.fillRect(0, 0, 64, 64);
+                        // Brutal border
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(0, 0, 64, 64);
+                    } else {
+                        // Rounded corners for standard themes
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(0, 0, 64, 64, 16);
+                        } else {
+                             ctx.rect(0, 0, 64, 64);
+                        }
+                        ctx.fill();
+                    }
+
+                    // Draw the dots (4 corners)
+                    ctx.fillStyle = isBrutal ? bgColor : '#ffffff'; 
+                    const dots = [[16,16], [48,16], [16,48], [48,48]];
+                    dots.forEach(([x,y]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    // Draw a "Line" connecting top and right to simulate gameplay
+                    ctx.strokeStyle = isBrutal ? bgColor : '#ffffff';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(16, 16); // Top Left
+                    ctx.lineTo(48, 16); // Top Right
+                    ctx.lineTo(48, 48); // Bottom Right
+                    ctx.stroke();
+
+                    // Convert to Data URL and assign to Link Tags
+                    const dataUrl = canvas.toDataURL('image/png');
+                    
+                    const link = document.getElementById('app-favicon');
+                    if(link) link.href = dataUrl;
+
+                    // iOS Icon
+                    const appleLink = document.getElementById('apple-touch-icon');
+                    if(appleLink) appleLink.href = dataUrl;
+                },
+
+                showRules: () => {
+                    App.Elements.genericModalTitle.textContent = 'How to Play';
+                    App.Elements.genericModalContent.innerHTML = `
+                        <div style="text-align: left; line-height: 1.6;">
+                            <p><strong>Goal:</strong> Capture more boxes than your opponent.</p>
+                            <ul style="margin: 15px 0 15px 20px;">
+                                <li style="margin-bottom: 8px;">Take turns clicking between two dots to draw a line.</li>
+                                <li style="margin-bottom: 8px;">If your line completes a box (4 sides), you capture it and <strong>get another turn immediately</strong>.</li>
+                                <li>The game ends when all boxes are filled.</li>
+                            </ul>
+                            <p style="margin-top: 15px; font-style: italic; color: var(--primary-color);"><strong>Strategy Tip:</strong> Think ahead! Don't place the 3rd wall of a box unless you can't avoid it, or your opponent will take it on their next turn.</p>
+                        </div>
+                    `;
+                    App.Elements.genericModalFooter.innerHTML = '<button onclick="App.UI.closeGenericModal()">Got it!</button>';
+                    App.UI.openModal(App.Elements.genericModalOverlay);
+                },
+                
+                showLicense: () => {
+                    App.Elements.genericModalTitle.textContent = 'MIT License';
+                    App.Elements.genericModalContent.innerHTML = `
+                        <div style="text-align: left; font-family: monospace; font-size: 0.85em; white-space: pre-wrap;">
+MIT License
+
+Copyright (c) ${new Date().getFullYear()} 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+                        </div>
+                    `;
+                    App.Elements.genericModalFooter.innerHTML = '<button onclick="App.UI.closeGenericModal()">Close</button>';
+                    App.UI.openModal(App.Elements.genericModalOverlay);
+                },
+
+                initializeCanvas: () => {
+                    const padding = 40;
+                    App.Game.cellSize = Math.max(40, Math.min(window.innerWidth - 80, 400) / (App.Game.gridSize - 1));
+                    App.Elements.canvas.width = App.Game.cellSize * (App.Game.gridSize - 1) + padding * 2;
+                    App.Elements.canvas.height = App.Game.cellSize * (App.Game.gridSize - 1) + padding * 2;
+                    App.Game.boxes = [];
+                    for (let row = 0; row < App.Game.gridSize - 1; row++) {
+                        App.Game.boxes[row] = [];
+                        for (let col = 0; col < App.Game.gridSize - 1; col++) {
+                            App.Game.boxes[row][col] = { owner: null };
+                        }
+                    }
+                },
+
+                drawGame: () => {
+                    const { ctx, canvas } = App.Elements;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const padding = 40;
+                    
+                    // Get system font stack from CSS
+                    const fontStack = getComputedStyle(document.body).fontFamily;
+
+                    // Draw filled boxes
+                    for (let row = 0; row < App.Game.gridSize - 1; row++) {
+                        for (let col = 0; col < App.Game.gridSize - 1; col++) {
+                            if (App.Game.boxes[row][col].owner !== null) {
+                                const x = padding + col * App.Game.cellSize;
+                                const y = padding + row * App.Game.cellSize;
+                                const owner = App.Game.players[App.Game.boxes[row][col].owner];
+
+                                ctx.fillStyle = owner.color + '33';
+                                ctx.fillRect(x, y, App.Game.cellSize, App.Game.cellSize);
+
+                                const initial = owner.name.charAt(0).toUpperCase();
+                                ctx.fillStyle = owner.color;
+                                ctx.font = `800 ${Math.floor(App.Game.cellSize * 0.5)}px ${fontStack}`;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(initial, x + App.Game.cellSize / 2, y + App.Game.cellSize / 2);
+                            }
+                        }
+                    }
+                    
+                    // Draw hovered line
+                    if (App.Game.hoveredLine && !App.Game.isLineDrawn(App.Game.hoveredLine)) {
+                        ctx.strokeStyle = App.Game.players[App.Game.currentPlayerIndex].color + '80';
+                        ctx.lineWidth = App.Game.lineWidth;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(App.Game.hoveredLine.x1, App.Game.hoveredLine.y1);
+                        ctx.lineTo(App.Game.hoveredLine.x2, App.Game.hoveredLine.y2);
+                        ctx.stroke();
+                    }
+
+                    // Draw committed lines
+                    App.Game.lines.forEach(line => {
+                        ctx.strokeStyle = App.Game.players[line.player].color;
+                        ctx.lineWidth = App.Game.lineWidth;
+                        
+                        // Highlight the very last line moved
+                        if (App.Game.lastMovedLine && 
+                            line.row1 === App.Game.lastMovedLine.row1 && 
+                            line.col1 === App.Game.lastMovedLine.col1 && 
+                            line.row2 === App.Game.lastMovedLine.row2 && 
+                            line.col2 === App.Game.lastMovedLine.col2) {
+                            
+                            ctx.shadowColor = App.Game.players[line.player].color;
+                            ctx.shadowBlur = 15;
+                            ctx.lineWidth = App.Game.lineWidth + 2;
+                        } else {
+                            ctx.shadowBlur = 0;
+                        }
+
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(line.x1, line.y1);
+                        ctx.lineTo(line.x2, line.y2);
+                        ctx.stroke();
+                        
+                        // Reset shadow
+                        ctx.shadowBlur = 0;
+                    });
+
+                    // Draw dots
+                    const computedStyle = getComputedStyle(document.documentElement);
+                    const dotColor = computedStyle.getPropertyValue('--border-color').trim() || '#2d3436';
+                    for (let row = 0; row < App.Game.gridSize; row++) {
+                        for (let col = 0; col < App.Game.gridSize; col++) {
+                            const x = padding + col * App.Game.cellSize;
+                            const y = padding + row * App.Game.cellSize;
+                            ctx.fillStyle = dotColor;
+                            ctx.beginPath();
+                            ctx.arc(x, y, App.Game.dotRadius, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                },
+
+                updatePlayersInfo: () => {
+                    App.Elements.playersInfoDiv.innerHTML = '';
+                    App.Game.players.forEach((player, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'player-info' + (index === App.Game.currentPlayerIndex ? ' active' : '');
+                        div.style.borderColor = player.color;
+                        div.style.color = player.color;
+                        div.innerHTML = `
+                            <div class="player-name">${player.name} ${player.isAI ? '(AI)' : ''}</div>
+                            <div class="player-score" aria-label="Score: ${player.score}">${player.score}</div>
+                        `;
+                        App.Elements.playersInfoDiv.appendChild(div);
+                    });
+                },
+
+                updatePlayerList: () => {
+                    App.Elements.playerListDiv.innerHTML = '<h3>Who is playing?</h3>';
+                    App.Game.players.forEach((player, index) => {
+                        if (player.isAI) return;
+                        const entry = document.createElement('div');
+                        entry.className = 'player-entry';
+                        entry.innerHTML = `
+                            <input type="text" value="${player.name}" onchange="App.Game.updatePlayerName(${index}, this.value)" aria-label="Player ${index+1} name">
+                            <input type="color" value="${player.color}" onchange="App.Game.updatePlayerColor(${index}, this.value)" aria-label="Player ${index+1} color">
+                            <button onclick="App.UI.removePlayer(${index})" aria-label="Remove Player ${index+1}">X</button>
+                        `;
+                        App.Elements.playerListDiv.appendChild(entry);
+                    });
+                },
+                
+                updatePlayerSetup: () => {
+                    const numPlayers = parseInt(App.Elements.numPlayersSelect.value);
+                    const currentPlayers = App.Game.players.filter(p => !p.isAI);
+                    
+                    if (numPlayers === 1) {
+                        App.Elements.aiDifficultyContainer.classList.remove('hidden');
+                    } else {
+                        App.Elements.aiDifficultyContainer.classList.add('hidden');
+                    }
+
+                    while (currentPlayers.length < numPlayers) {
+                        App.UI.addPlayer(false); 
+                        currentPlayers.push(App.Game.players[currentPlayers.length]);
+                    }
+                    while (currentPlayers.length > numPlayers) {
+                        App.Game.players.pop();
+                        currentPlayers.pop();
+                    }
+                    App.UI.updatePlayerList();
+                },
+
+                addPlayer: (updateList = true) => {
+                    const humanPlayers = App.Game.players.filter(p => !p.isAI);
+                    if (humanPlayers.length >= 6) {
+                        App.UI.showToast("Maximum of 6 players allowed.");
+                        return;
+                    }
+                    // Colors checked for better contrast
+                    const colors = ['#ee5253', '#2e86de', '#10ac84', '#8854d0', '#ff9f43', '#e17055'];
+                    const color = colors[humanPlayers.length % colors.length];
+                    App.Game.players.push({ name: `Player ${humanPlayers.length + 1}`, color: color, score: 0, isAI: false });
+                    
+                    if(updateList) {
+                        App.Elements.numPlayersSelect.value = App.Game.players.length;
+                        App.Storage.savePlayerDefaults();
+                        App.UI.updatePlayerList();
+                    }
+                },
+
+                removePlayer: (index) => {
+                    const humanPlayers = App.Game.players.filter(p => !p.isAI);
+                    if (humanPlayers.length > 1) {
+                        const playerToRemove = App.Game.players[index];
+                        App.Game.players = App.Game.players.filter(p => p !== playerToRemove);
+                        App.Elements.numPlayersSelect.value = App.Game.players.length;
+                        App.Storage.savePlayerDefaults();
+                        App.UI.updatePlayerList();
+                    }
+                },
+
+                resetGameConfirm: () => {
+                    if (App.Game.gameActive && !App.Game.isGameSaved && confirm("Are you sure? Your current progress will be lost.")) {
+                        App.Game.resetGame();
+                    } else if (!App.Game.gameActive || App.Game.isGameSaved) {
+                        App.Game.resetGame();
+                    }
+                },
+
+                showToast: (message) => {
+                    if (App.UI.toastTimeout) clearTimeout(App.UI.toastTimeout);
+                    App.Elements.toast.textContent = message;
+                    App.Elements.toast.classList.add('show');
+                    App.UI.toastTimeout = setTimeout(() => {
+                        App.Elements.toast.classList.remove('show');
+                    }, 2500);
+                },
+
+                showLoadGameModal: () => {
+                    const saves = App.Storage.getSaves().sort((a, b) => b.timestamp - a.timestamp);
+                    App.Elements.genericModalTitle.textContent = 'Load Saved Game';
+                    
+                    if (saves.length === 0) {
+                        App.Elements.genericModalContent.innerHTML = '<p style="text-align:center;">No saved games found.</p>';
+                    } else {
+                        App.Elements.genericModalContent.innerHTML = saves.map(save => `
+                            <div class="save-entry">
+                                <div class="save-entry-info">
+                                    <strong>${save.name}</strong>
+                                    <span>Saved: ${new Date(save.timestamp).toLocaleString()}</span>
+                                </div>
+                                <div class="save-entry-buttons">
+                                    <button onclick="App.Storage.loadSelectedGame('${save.name}')">Load</button>
+                                    <button class="btn-danger" onclick="App.Storage.deleteSave('${save.name}')">Delete</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    App.Elements.genericModalFooter.innerHTML = '';
+                    App.UI.openModal(App.Elements.genericModalOverlay);
+                },
+
+                showHistoryModal: () => {
+                    const history = App.Storage.getHistory().sort((a, b) => b.date - a.date);
+                    App.Elements.genericModalTitle.textContent = 'Game History';
+                    
+                    if (history.length === 0) {
+                        App.Elements.genericModalContent.innerHTML = '<p style="text-align:center;">No game history found.</p>';
+                    } else {
+                        App.Elements.genericModalContent.innerHTML = history.map(entry => `
+                            <div class="history-entry">
+                                <div class="history-entry-info">
+                                    <strong>${new Date(entry.date).toLocaleString()}</strong>
+                                    <span>${entry.players}</span>
+                                </div>
+                                <div class="history-entry-info score">
+                                    <span>${entry.winner}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    
+                    App.Elements.genericModalFooter.innerHTML = `<button class="btn-danger" onclick="App.Storage.clearHistory()">Clear All History</button>`;
+                    App.UI.openModal(App.Elements.genericModalOverlay);
+                },
+
+                openModal: (modalOverlay) => {
+                    modalOverlay.classList.add('show');
+                    const focusableElements = modalOverlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    App.UI.firstFocusableElement = focusableElements[0];
+                    App.UI.lastFocusableElement = focusableElements[focusableElements.length - 1];
+                    App.UI.firstFocusableElement.focus();
+                },
+
+                closeGenericModal: () => {
+                    App.Elements.genericModalOverlay.classList.remove('show');
+                },
+
+                setTheme: (themeName) => {
+                    document.documentElement.setAttribute('data-theme', themeName);
+                    localStorage.setItem(App.Storage.THEME_KEY, themeName);
+                    if (App.Game.gameActive) {
+                        App.UI.drawGame();
+                    }
+                    // Update Favicon on Theme Change
+                    App.UI.updateFavicon();
+                },
+            },
+
+            // --- CORE GAME LOGIC ---
+            Game: {
+                gridSize: 6,
+                cellSize: 60,
+                dotRadius: 7, 
+                lineWidth: 5, 
+                players: [],
+                currentPlayerIndex: 0,
+                lines: [],
+                boxes: [],
+                gameActive: false,
+                moveHistory: [],
+                hoveredLine: null,
+                lastMovedLine: null,
+                isGameSaved: false,
+                isAIThinking: false,
+
+                initializePlayers: () => {
+                    const savedDefaults = localStorage.getItem(App.Storage.PLAYER_DEFAULTS_KEY);
+                    if (savedDefaults) {
+                        App.Game.players = JSON.parse(savedDefaults);
+                    } else {
+                        App.Game.players = [
+                            { name: 'Player 1', color: '#ee5253', score: 0, isAI: false },
+                            { name: 'Player 2', color: '#2e86de', score: 0, isAI: false }
+                        ];
+                    }
+                    App.Elements.numPlayersSelect.value = App.Game.players.length;
+                    App.UI.updatePlayerList();
+                    App.UI.updatePlayerSetup();
+                },
+
+                updatePlayerName: (index, name) => {
+                    App.Game.players[index].name = name;
+                    App.Storage.savePlayerDefaults();
+                },
+
+                updatePlayerColor: (index, color) => {
+                    App.Game.players[index].color = color;
+                    App.Storage.savePlayerDefaults();
+                },
+
+                startGame: () => {
+                    App.Game.gridSize = parseInt(App.Elements.gridSizeSelect.value);
+                    const numPlayers = parseInt(App.Elements.numPlayersSelect.value);
+
+                    // Finalize player list
+                    App.Game.players = App.Game.players.filter(p => !p.isAI).slice(0, numPlayers);
+                    if (numPlayers === 1 && App.Elements.aiDifficultySelect.value !== 'none') {
+                        App.Game.players.push({
+                            name: 'AI',
+                            color: '#8854d0',
+                            score: 0,
+                            isAI: true,
+                            difficulty: App.Elements.aiDifficultySelect.value
+                        });
+                    }
+
+                    App.Game.gameActive = true;
+                    App.Game.currentPlayerIndex = 0;
+                    App.Game.lines = [];
+                    App.Game.boxes = [];
+                    App.Game.moveHistory = [];
+                    App.Game.lastMovedLine = null;
+                    App.Game.isGameSaved = false;
+                    App.Game.players.forEach(p => p.score = 0);
+                    
+                    App.Game.isAIThinking = false;
+                    App.Elements.aiOverlay.classList.add('hidden');
+
+                    App.Elements.setupDiv.classList.add('hidden');
+                    App.Elements.gameAreaDiv.classList.remove('hidden');
+                    App.Elements.gameAreaDiv.setAttribute('aria-hidden', 'false');
+                    App.Elements.gameOverModalOverlay.classList.remove('show');
+
+                    App.UI.initializeCanvas();
+                    App.UI.updatePlayersInfo();
+                    App.UI.drawGame();
+                    
+                    const startMsg = `Game started. ${App.Game.players[0].name}'s turn.`;
+                    App.UI.announce(startMsg);
+                    
+                    App.Game.checkAITurn();
+                },
+
+                resetGame: () => {
+                    App.Game.isAIThinking = false;
+                    App.Elements.aiOverlay.classList.add('hidden');
+                    
+                    App.Elements.setupDiv.classList.remove('hidden');
+                    App.Elements.gameAreaDiv.classList.add('hidden');
+                    App.Elements.gameAreaDiv.setAttribute('aria-hidden', 'true');
+                    App.Elements.gameOverModalOverlay.classList.remove('show');
+                    App.Game.gameActive = false;
+                    App.Game.hoveredLine = null;
+                    App.Game.lastMovedLine = null;
+                    App.Game.isGameSaved = false;
+                    App.Game.initializePlayers();
+                },
+
+                applyGameState: (gameState) => {
+                    App.Game.gridSize = gameState.gridSize;
+                    App.Game.players = gameState.players;
+                    App.Game.currentPlayerIndex = gameState.currentPlayerIndex;
+                    App.Game.lines = gameState.lines;
+                    App.Game.boxes = gameState.boxes;
+                    App.Game.moveHistory = gameState.moveHistory || [];
+                    App.Game.gameActive = true;
+                    App.Game.isGameSaved = true;
+
+                    App.Elements.setupDiv.classList.add('hidden');
+                    App.Elements.gameAreaDiv.classList.remove('hidden');
+                    App.Elements.gameOverModalOverlay.classList.remove('show');
+
+                    App.UI.initializeCanvas();
+                    App.UI.updatePlayersInfo();
+                    App.UI.drawGame();
+                },
+
+                handleInput: (e) => {
+                    if (!App.Game.gameActive || App.Game.isAIThinking) return;
+
+                    // Handle Touch vs Mouse differences
+                    let clientX, clientY;
+                    if (e.type.startsWith('touch')) {
+                        // Prevent scrolling when touching the canvas
+                        e.preventDefault(); 
+                        const touch = e.touches[0] || e.changedTouches[0];
+                        clientX = touch.clientX;
+                        clientY = touch.clientY;
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+
+                    const rect = App.Elements.canvas.getBoundingClientRect();
+                    
+                    // SCALING FIX: Map visual pixels to canvas buffer pixels
+                    const scaleX = App.Elements.canvas.width / rect.width;
+                    const scaleY = App.Elements.canvas.height / rect.height;
+                    
+                    const x = (clientX - rect.left) * scaleX;
+                    const y = (clientY - rect.top) * scaleY;
+                    
+                    const isCommitAction = (e.type === 'click' || e.type === 'touchend');
+                    
+                    if (isCommitAction) {
+                        const line = App.Game.findNearestLine(x, y);
+                        if (line && !App.Game.isLineDrawn(line)) {
+                            App.Game.playMove(line);
+                            App.Game.hoveredLine = null; 
+                        }
+                    } else {
+                        // Movement/Hover logic
+                        const line = App.Game.findNearestLine(x, y);
+                        if (line && !App.Game.isLineDrawn(line)) {
+                             // Only redraw if changed
+                             if (!App.Game.hoveredLine || (App.Game.hoveredLine.x1 !== line.x1 || App.Game.hoveredLine.y1 !== line.y1 || App.Game.hoveredLine.x2 !== line.x2 || App.Game.hoveredLine.y2 !== line.y2)) {
+                                 App.Game.hoveredLine = line;
+                                 App.UI.drawGame();
+                             }
+                        } else if (App.Game.hoveredLine) {
+                            App.Game.hoveredLine = null;
+                            App.UI.drawGame();
+                        }
+                    }
+                },
+
+                handleMouseOut: () => {
+                    if (App.Game.hoveredLine) {
+                        App.Game.hoveredLine = null;
+                        App.UI.drawGame();
+                    }
+                },
+
+                playMove: (line) => {
+                    const player = App.Game.players[App.Game.currentPlayerIndex];
+                    App.Game.lastMovedLine = line;
+                    const boxCompleted = App.Game.addLine(line);
+                    App.Game.hoveredLine = null;
+                    
+                    let announcement = `${player.name} placed a line.`;
+
+                    if (boxCompleted) {
+                         announcement += ` And captured a box! It is still ${player.name}'s turn.`;
+                    } else {
+                        App.Game.currentPlayerIndex = (App.Game.currentPlayerIndex + 1) % App.Game.players.length;
+                        announcement += ` It is now ${App.Game.players[App.Game.currentPlayerIndex].name}'s turn.`;
+                    }
+                    
+                    App.UI.announce(announcement);
+                    App.UI.updatePlayersInfo();
+                    App.UI.drawGame();
+                    if (!App.Game.checkGameOver()) {
+                        App.Game.checkAITurn();
+                    }
+                },
+
+                findNearestLine: (x, y) => {
+                    const padding = 40;
+                    let nearest = null;
+                    let minDist = 25;
+                    for (let row = 0; row < App.Game.gridSize; row++) {
+                        for (let col = 0; col < App.Game.gridSize; col++) {
+                            const dotX = padding + col * App.Game.cellSize;
+                            const dotY = padding + row * App.Game.cellSize;
+                            if (col < App.Game.gridSize - 1) {
+                                const midX = dotX + App.Game.cellSize / 2;
+                                const midY = dotY;
+                                const dist = Math.hypot(x - midX, y - midY);
+                                if (dist < minDist && Math.abs(y - midY) < minDist) {
+                                    minDist = dist;
+                                    nearest = { x1: dotX, y1: dotY, x2: dotX + App.Game.cellSize, y2: dotY, row1: row, col1: col, row2: row, col2: col + 1, type: 'h' };
+                                }
+                            }
+                            if (row < App.Game.gridSize - 1) {
+                                const midX = dotX;
+                                const midY = dotY + App.Game.cellSize / 2;
+                                const dist = Math.hypot(x - midX, y - midY);
+                                if (dist < minDist && Math.abs(x - midX) < minDist) {
+                                    minDist = dist;
+                                    nearest = { x1: dotX, y1: dotY, x2: dotX, y2: dotY + App.Game.cellSize, row1: row, col1: col, row2: row + 1, col2: col, type: 'v' };
+                                }
+                            }
+                        }
+                    }
+                    return nearest;
+                },
+
+                isLineDrawn: (line) => {
+                    return App.Game.lines.some(l => (l.row1 === line.row1 && l.col1 === line.col1 && l.row2 === line.row2 && l.col2 === line.col2));
+                },
+
+                addLine: (line) => {
+                    line.player = App.Game.currentPlayerIndex;
+                    App.Game.lines.push(line);
+                    App.Game.moveHistory.push(JSON.parse(JSON.stringify({
+                        line: line,
+                        playerIndex: App.Game.currentPlayerIndex,
+                        previousScores: App.Game.players.map(p => p.score),
+                        boxes: JSON.parse(JSON.stringify(App.Game.boxes))
+                    })));
+                    App.Game.isGameSaved = false;
+
+                    let boxCompleted = false;
+                    const boxesToCheck = [];
+                    if (line.type === 'h') {
+                        if (line.row1 > 0) boxesToCheck.push({ row: line.row1 - 1, col: line.col1 });
+                        if (line.row1 < App.Game.gridSize - 1) boxesToCheck.push({ row: line.row1, col: line.col1 });
+                    } else {
+                        if (line.col1 > 0) boxesToCheck.push({ row: line.row1, col: line.col1 - 1 });
+                        if (line.col1 < App.Game.gridSize - 1) boxesToCheck.push({ row: line.row1, col: line.col1 });
+                    }
+
+                    boxesToCheck.forEach(box => {
+                        if (App.Game.isBoxComplete(box.row, box.col)) {
+                            if (App.Game.boxes[box.row][box.col].owner === null) {
+                                App.Game.boxes[box.row][box.col].owner = App.Game.currentPlayerIndex;
+                                App.Game.players[App.Game.currentPlayerIndex].score++;
+                                boxCompleted = true;
+                            }
+                        }
+                    });
+                    return boxCompleted;
+                },
+
+                isBoxComplete: (row, col) => {
+                    const hasLine = (r1, c1, r2, c2) => App.Game.lines.some(l => (l.row1 === r1 && l.col1 === c1 && l.row2 === r2 && l.col2 === c2) || (l.row1 === r2 && l.col1 === c2 && l.row2 === r1 && l.col2 === c1));
+                    return hasLine(row, col, row, col + 1) && hasLine(row + 1, col, row + 1, col + 1) && hasLine(row, col, row + 1, col) && hasLine(row, col + 1, row + 1, col + 1);
+                },
+
+                checkGameOver: () => {
+                    const totalBoxes = (App.Game.gridSize - 1) * (App.Game.gridSize - 1);
+                    const completedBoxes = App.Game.boxes.flat().filter(b => b.owner !== null).length;
+
+                    if (completedBoxes === totalBoxes) {
+                        App.Game.gameActive = false;
+                        App.Game.isGameSaved = true;
+                        const maxScore = Math.max(...App.Game.players.map(p => p.score));
+                        const winners = App.Game.players.filter(p => p.score === maxScore);
+                        let winnerText;
+                        if (winners.length === 1) {
+                            winnerText = `${winners[0].name} wins with ${maxScore} boxes!`;
+                        } else {
+                            winnerText = `It's a tie between ${winners.map(p => p.name).join(' and ')}!`;
+                        }
+                        
+                        App.UI.announce("Game Over. " + winnerText);
+                        App.Storage.saveToHistory(winnerText);
+
+                        App.Elements.winnerP.textContent = winnerText;
+                        App.UI.openModal(App.Elements.gameOverModalOverlay);
+                        return true; 
+                    }
+                    return false; 
+                },
+
+                undoMove: () => {
+                    if (App.Game.moveHistory.length === 0) {
+                        App.UI.showToast('No moves to undo!');
+                        return;
+                    }
+                    if (App.Game.isAIThinking) return;
+
+                    // Undo until it's a human's turn
+                    let lastMove;
+                    do {
+                        lastMove = App.Game.moveHistory.pop();
+                        App.Game.lines.pop();
+                    } while (App.Game.players[lastMove.playerIndex].isAI && App.Game.moveHistory.length > 0);
+                    
+                    App.Game.boxes = JSON.parse(JSON.stringify(lastMove.boxes));
+                    App.Game.players.forEach((p, i) => { p.score = lastMove.previousScores[i]; });
+                    App.Game.currentPlayerIndex = lastMove.playerIndex;
+                    App.Game.lastMovedLine = null; 
+                    App.Game.gameActive = true;
+                    App.Game.isGameSaved = false;
+                    App.UI.announce("Undo successful. It is " + App.Game.players[App.Game.currentPlayerIndex].name + "'s turn.");
+                    App.UI.updatePlayersInfo();
+                    App.UI.drawGame();
+                },
+
+                checkAITurn: () => {
+                    const currentPlayer = App.Game.players[App.Game.currentPlayerIndex];
+                    if (App.Game.gameActive && currentPlayer.isAI) {
+                        App.Game.isAIThinking = true;
+                        App.Elements.aiOverlay.classList.remove('hidden');
+                        App.UI.announce("AI is thinking...");
+                        
+                        const timeout = 750; 
+
+                        setTimeout(() => {
+                            const move = App.AI.makeMove(currentPlayer.difficulty);
+                            if (move) {
+                                App.Game.playMove(move);
+                            }
+                            App.Game.isAIThinking = false;
+                            App.Elements.aiOverlay.classList.add('hidden');
+                        }, timeout);
+                    }
+                },
+            },
+
+            // --- AI LOGIC ---
+            AI: {
+                makeMove: (difficulty) => {
+                    // 1. ALWAYS take a box if available (Greedy & Hard)
+                    if (difficulty === 'greedy' || difficulty === 'hard') {
+                        const completingMove = App.AI.findCompletingMove();
+                        if (completingMove) return completingMove;
+                    }
+
+                    // 2. If Hard mode, try to find a safe move
+                    if (difficulty === 'hard') {
+                        const safeMove = App.AI.findSafeMove();
+                        if (safeMove) return safeMove;
+                    }
+
+                    // 3. Fallback to random (Simple, or if Hard mode is forced to sacrifice)
+                    return App.AI.findRandomMove();
+                },
+
+                findCompletingMove: () => {
+                    const allPossibleLines = App.AI.getAllPossibleLines();
+                    // Shuffle lines
+                    const shuffledLines = allPossibleLines.sort(() => 0.5 - Math.random());
+
+                    for (const line of shuffledLines) {
+                        if (App.Game.isLineDrawn(line)) continue;
+
+                        if (App.AI.doesLineCompleteBox(line)) {
+                            return line;
+                        }
+                    }
+                    return null;
+                },
+
+                findSafeMove: () => {
+                    const allPossibleLines = App.AI.getAllPossibleLines();
+                    const availableLines = allPossibleLines.filter(line => !App.Game.isLineDrawn(line));
+                    const safeLines = [];
+
+                    for (const line of availableLines) {
+                        // A "safe" move is one that does NOT result in any neighbor box having 3 sides filled
+                        if (!App.AI.doesLineGiveAwayBox(line)) {
+                            safeLines.push(line);
+                        }
+                    }
+
+                    if (safeLines.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * safeLines.length);
+                        return safeLines[randomIndex];
+                    }
+                    return null; 
+                },
+
+                findRandomMove: () => {
+                    const allPossibleLines = App.AI.getAllPossibleLines();
+                    const availableLines = allPossibleLines.filter(line => !App.Game.isLineDrawn(line));
+                    
+                    if (availableLines.length === 0) return null;
+
+                    const randomIndex = Math.floor(Math.random() * availableLines.length);
+                    return availableLines[randomIndex];
+                },
+
+                doesLineCompleteBox: (line) => {
+                    App.Game.lines.push(line);
+                    
+                    let completesBox = false;
+                    const boxesToCheck = App.AI.getAdjacentBoxes(line);
+
+                    for (const box of boxesToCheck) {
+                        if (App.Game.isBoxComplete(box.row, box.col) && App.Game.boxes[box.row][box.col].owner === null) {
+                            completesBox = true;
+                            break;
+                        }
+                    }
+                    
+                    App.Game.lines.pop();
+                    return completesBox;
+                },
+
+                doesLineGiveAwayBox: (line) => {
+                    App.Game.lines.push(line);
+                    
+                    let givesAway = false;
+                    const boxesToCheck = App.AI.getAdjacentBoxes(line);
+
+                    for (const box of boxesToCheck) {
+                        const linesInBox = App.AI.countLinesInBox(box.row, box.col);
+                        if (linesInBox === 3) { 
+                            givesAway = true;
+                            break;
+                        }
+                    }
+
+                    App.Game.lines.pop();
+                    return givesAway;
+                },
+
+                getAdjacentBoxes: (line) => {
+                    const boxes = [];
+                    if (line.type === 'h') {
+                        if (line.row1 > 0) boxes.push({ row: line.row1 - 1, col: line.col1 });
+                        if (line.row1 < App.Game.gridSize - 1) boxes.push({ row: line.row1, col: line.col1 });
+                    } else {
+                        if (line.col1 > 0) boxes.push({ row: line.row1, col: line.col1 - 1 });
+                        if (line.col1 < App.Game.gridSize - 1) boxes.push({ row: line.row1, col: line.col1 });
+                    }
+                    return boxes;
+                },
+
+                countLinesInBox: (row, col) => {
+                    let count = 0;
+                    const hasLine = (r1, c1, r2, c2) => App.Game.lines.some(l => (l.row1 === r1 && l.col1 === c1 && l.row2 === r2 && l.col2 === c2) || (l.row1 === r2 && l.col1 === c2 && l.row2 === r1 && l.col2 === c1));
+                    if (hasLine(row, col, row, col + 1)) count++;     // Top
+                    if (hasLine(row + 1, col, row + 1, col + 1)) count++; // Bottom
+                    if (hasLine(row, col, row + 1, col)) count++;     // Left
+                    if (hasLine(row, col + 1, row + 1, col + 1)) count++; // Right
+                    return count;
+                },
+
+                getAllPossibleLines: () => {
+                    const lines = [];
+                    const padding = 40;
+                    for (let row = 0; row < App.Game.gridSize; row++) {
+                        for (let col = 0; col < App.Game.gridSize; col++) {
+                            const dotX = padding + col * App.Game.cellSize;
+                            const dotY = padding + row * App.Game.cellSize;
+                            // Horizontal
+                            if (col < App.Game.gridSize - 1) {
+                                lines.push({ x1: dotX, y1: dotY, x2: dotX + App.Game.cellSize, y2: dotY, row1: row, col1: col, row2: row, col2: col + 1, type: 'h' });
+                            }
+                            // Vertical
+                            if (row < App.Game.gridSize - 1) {
+                                lines.push({ x1: dotX, y1: dotY, x2: dotX, y2: dotY + App.Game.cellSize, row1: row, col1: col, row2: row + 1, col2: col, type: 'v' });
+                            }
+                        }
+                    }
+                    return lines;
+                }
+            },
+
+            // --- INITIALIZATION ---
+            init: () => {
+                // Cache DOM elements
+                const E = App.Elements;
+                E.canvas = document.getElementById('gameCanvas');
+                E.ctx = E.canvas.getContext('2d');
+                E.toast = document.getElementById('toast');
+                E.gameOverModalOverlay = document.getElementById('modal-overlay');
+                E.genericModalOverlay = document.getElementById('generic-modal-overlay');
+                E.genericModalTitle = document.getElementById('generic-modal-title');
+                E.genericModalContent = document.getElementById('generic-modal-content');
+                E.genericModalFooter = document.getElementById('generic-modal-footer');
+                E.setupDiv = document.getElementById('setup');
+                E.gameAreaDiv = document.getElementById('gameArea');
+                E.playersInfoDiv = document.getElementById('playersInfo');
+                E.playerListDiv = document.getElementById('playerList');
+                E.gridSizeSelect = document.getElementById('gridSize');
+                E.numPlayersSelect = document.getElementById('numPlayers');
+                E.aiDifficultyContainer = document.getElementById('aiDifficultyContainer');
+                E.aiDifficultySelect = document.getElementById('aiDifficulty');
+                E.themeSelector = document.getElementById('themeSelector');
+                E.winnerP = document.getElementById('winner');
+                E.aiOverlay = document.getElementById('ai-overlay');
+                E.announcer = document.getElementById('a11y-announcer');
+
+                // Add unified event listeners for mouse and touch
+                ['mousedown', 'touchstart'].forEach(evt => E.canvas.addEventListener(evt, (e) => {
+                    App.Game.handleInput(e);
+                }, {passive: false}));
+
+                ['mousemove', 'touchmove'].forEach(evt => E.canvas.addEventListener(evt, (e) => {
+                    App.Game.handleInput(e);
+                }, {passive: false}));
+
+                ['mouseup', 'touchend', 'click'].forEach(evt => E.canvas.addEventListener(evt, (e) => {
+                    App.Game.handleInput(e);
+                }, {passive: false}));
+
+                E.canvas.addEventListener('mouseout', App.Game.handleMouseOut);
+
+                // Accessibility: Modal focus trapping
+                [E.gameOverModalOverlay, E.genericModalOverlay].forEach(modal => {
+                    modal.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            if (modal === E.genericModalOverlay) App.UI.closeGenericModal();
+                        }
+                        if (e.key === 'Tab') {
+                            if (e.shiftKey) { // Shift + Tab
+                                if (document.activeElement === App.UI.firstFocusableElement) {
+                                    App.UI.lastFocusableElement.focus();
+                                    e.preventDefault();
+                                }
+                            } else { // Tab
+                                if (document.activeElement === App.UI.lastFocusableElement) {
+                                    App.UI.firstFocusableElement.focus();
+                                    e.preventDefault();
+                                }
+                            }
+                        }
+                    });
+                });
+
+                // Load theme
+                const savedTheme = localStorage.getItem(App.Storage.THEME_KEY) || 'light';
+                App.UI.setTheme(savedTheme);
+                E.themeSelector.value = savedTheme;
+                
+                // Initialize Favicon
+                App.UI.updateFavicon();
+
+                // Initialize players
+                App.Game.initializePlayers();
+            }
+        };
+
+        // --- START THE APP ---
+        document.addEventListener('DOMContentLoaded', App.init);
+    </script>
+</body>
+</html>
