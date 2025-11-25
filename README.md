@@ -63,7 +63,6 @@ Connect dots to create lines. Complete a square's fourth side to claim it and sc
 * CSS custom properties for easy theming
 * `localStorage` for game persistence
 
-**File size:** ~60KB uncompressed
 **Browser support:** Any modern browser (Chrome, Firefox, Safari, Edge) from 2020 or newer, including mobile browsers.
 
 ---
